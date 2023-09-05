@@ -1,24 +1,12 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const mysql = require("mysql");
 const server = express();
 server.use(bodyParser.json());
+ const db = require('./database/db');
+ const bcrypt = require('bcrypt'); // for password hashing
+ const jwt = require('jsonwebtoken'); // for JWT authentication
 
 
-//Establish the database connection
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "Vishnu2002@",
-    database: "mydatabase",
-});
-db.connect(function (error) {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log("successfully Connected to DB");
-    }
-  });
   
 
 //Establish the Port
@@ -34,19 +22,76 @@ db.connect(function (error) {
 });
 
 
+
+const jwtSecretKey = 'ananthvishnuananthvishnu'; // Replace 'your-secret-key' with your actual secret key
+
+
+server.post('/api/users/signup', (req, res) => {
+  const { name, email, password } = req.body;
+
+  // Check if required fields are provided
+  if (!name || !email || !password) {
+    return res.status(400).json({ status: false, message: 'All fields are required' });
+  }
+
+  // Check if the email already exists in the database
+  const checkEmailSql = 'SELECT * FROM users WHERE email = ?';
+
+  db.query(checkEmailSql, email, (error, results) => {
+    if (error) {
+      return res.status(500).json({ status: false, message: 'Database error' });
+    }
+
+    if (results.length > 0) {
+      // Email already exists
+      return res.status(409).json({ status: false, message: 'Email already exists' });
+    }
+
+    // Hash the password before storing it in the database
+    bcrypt.hash(password, 10, (err, hash) => {
+      if (err) {
+        return res.status(500).json({ status: false, message: 'Password hashing failed' });
+      }
+
+      const userDetails = {
+        name: name,
+        email: email,
+        password: hash, // Store the hashed password
+      };
+
+      const insertUserSql = 'INSERT INTO users SET ?';
+
+      db.query(insertUserSql, userDetails, (insertError) => {
+        if (insertError) {
+          return res.status(500).json({ status: false, message: 'User creation failed' });
+        }
+
+        // Generate a JWT token upon successful user creation
+        const token = jwt.sign({ email: email }, jwtSecretKey, { expiresIn: '1h' });
+
+        res.status(201).json({ status: true, message: 'User created successfully', token: token });
+      });
+    });
+  });
+});
+
+
+
+
 //Create the Records
-server.post("/api/student/add", (req, res) => {
+server.post("/api/users/add", (req, res) => {
+  console.log(req.body);
     let details = {
-      stname: req.body.stname,
-      course: req.body.course,
-      fee: req.body.fee,
+      name: req.body.name,
+      email: req.body.email,
+      password: req.body.password,
     };
-    let sql = "INSERT INTO student SET ?";
+    let sql = "INSERT INTO users SET ?";
     db.query(sql, details, (error) => {
       if (error) {
-        res.send({ status: false, message: "Student created Failed" });
+        res.send({ status: false, message: "User created Failed" });
       } else {
-        res.send({ status: true, message: "Student created successfully" });
+        res.send({ status: true, message: "User created successfully" });
       }
     });
   });
@@ -54,7 +99,7 @@ server.post("/api/student/add", (req, res) => {
 
 //view the Records
 server.get("/api/student", (req, res) => {
-    var sql = "SELECT * FROM student";
+    var sql = "SELECT * FROM users";
     db.query(sql, function (error, result) {
       if (error) {
         console.log("Error Connecting to DB");
@@ -67,8 +112,8 @@ server.get("/api/student", (req, res) => {
 
 //Search the Records
 server.get("/api/student/:id", (req, res) => {
-    var studentid = req.params.id;
-    var sql = "SELECT * FROM student WHERE id=" + studentid;
+    var userid = req.params.id;
+    var sql = "SELECT * FROM student WHERE id=" + userid;
     db.query(sql, function (error, result) {
       if (error) {
         console.log("Error Connecting to DB");
@@ -82,12 +127,12 @@ server.get("/api/student/:id", (req, res) => {
 //Update the Records
 server.put("/api/student/update/:id", (req, res) => {
     let sql =
-      "UPDATE student SET stname='" +
-      req.body.stname +
-      "', course='" +
-      req.body.course +
-      "',fee='" +
-      req.body.fee +
+      "UPDATE student SET name='" +
+      req.body.name +
+      "', email='" +
+      req.body.email +
+      "',password='" +
+      req.body.password +
       "'  WHERE id=" +
       req.params.id;
   
@@ -112,3 +157,5 @@ server.put("/api/student/update/:id", (req, res) => {
       }
     });
   });
+
+ 
