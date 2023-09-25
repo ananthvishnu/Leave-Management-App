@@ -43,7 +43,7 @@ const query = (sql, params) => {
 
 const jwtSecretKey = 'ananthvishnuananthvishnu'; // Replace 'your-secret-key' with your actual secret key
 
-//Signup function  users
+//Signup function  user
 server.post('/api/users/signup', async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -87,7 +87,7 @@ server.post('/api/users/signup', async (req, res) => {
 });
 
 
-//!login function
+// login function for user
 server.post('/api/users/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -261,18 +261,6 @@ server.post('/api/users/change-password', async (req, res) => {
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 //view the All users in Registerd
 server.get("/api/users", (req, res) => {
     var sql = "SELECT * FROM users";
@@ -286,7 +274,7 @@ server.get("/api/users", (req, res) => {
   });
 
 
-//Search the Records
+//Search the Records of All register users
 server.get("/api/users/:id", (req, res) => {
     var userid = req.params.id;
     var sql = "SELECT * FROM users WHERE id=" + userid;
@@ -298,6 +286,7 @@ server.get("/api/users/:id", (req, res) => {
       }
     });
   });
+
 
 
 //Update the Records
@@ -335,3 +324,102 @@ server.put("/api/users/update/:id", (req, res) => {
   });
 
  
+
+  //!  Employees cruds for Admin
+  // Create a Employee
+server.post('/api/employee/add', (req, res) => {
+  try {
+      let details = {
+          name: req.body.name,
+          email: req.body.email,
+          address: req.body.address,
+          phonenumber: req.body.phonenumber,
+          NIC:req.body.NIC,
+      };
+
+      // Add to the database
+      let sql = "INSERT INTO employees SET ?";
+      db.query(sql, details, (error, results) => {
+          if (error) {
+              console.log('Error inserting data:', error);
+              res.status(500).json({ status: false, message: "Failed to insert data" });
+          } else {
+              console.log('Data inserted successfully');
+              res.status(200).json({ status: true, message: "Data inserted successfully" });
+          }
+      });
+  } catch (err) {
+      console.error('Error:', err);
+      res.status(500).json({ status: false, message: "An error occurred while processing your request" });
+  }
+});
+
+
+
+// view the Employee details
+server.get("/api/employee", (req,res) => {
+  var sql = 'SELECT * FROM employees';
+  db.query(sql, function(error, result){
+      if(error){
+          console.log("not found!")
+      }else{
+          res.send({status:true, data:result})
+      }
+  })
+})
+
+
+// get the single data for Employee
+server.get("/api/employee/:id", (req,res) => {
+var employeeid = req.params.id;
+var sql = 'SELECT * FROM employees WHERE id=' + employeeid;
+db.query(sql, function(error, result){
+  if(error) {
+      console.log("error connecting for the db search")
+  } else {
+      res.send({status:true, data: result})
+  }
+}) 
+})
+
+
+// update the Employee data
+server.put("/api/employee/update/:id", (req, res) => {
+  let sql =
+    "UPDATE employees SET name='" +
+    req.body.name +
+    "', email='" +
+    req.body.email +
+    "',address='" +
+    req.body.address +
+    "',phonenumber='" +
+    req.body.phonenumber +
+    "',NIC'" +
+    req.body.NIC +
+    "'  WHERE id=" +
+    req.params.id;
+
+  let a = db.query(sql, (error, result) => {
+    if (error) {
+      res.send({ status: false, message: "Student Updated Failed" });
+    
+    } else {
+      res.send({ status: true, message: "Student Updated successfully" });
+    }
+  });
+});
+
+// delete the Employee 
+server.delete("/api/employee/delete/:id", (req,res) => {
+  let sql = "DELETE FROM employees WHERE id=" +
+  req.params.id + "";
+  let query = db.query(sql, (error) => {
+      if(error) {
+          res.send({status: false , message:"deleted failed"})
+      } else{
+          res.send({status:true, message:"deleted Successfully"})
+      }
+  })
+});
+
+
